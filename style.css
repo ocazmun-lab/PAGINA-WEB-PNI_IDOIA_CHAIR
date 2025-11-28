@@ -453,7 +453,6 @@ footer{background:var(--primario);color:#fff;padding:1rem 0;margin-top:2rem}
 }
 
 @media (max-width:700px){
-  .menu{display:none}
   .hero h2{font-size:1.6rem}
   .grid {grid-template-columns: 1fr}
   .whatsapp-float{ width:50px; height:50px; bottom:20px; right:20px;}
