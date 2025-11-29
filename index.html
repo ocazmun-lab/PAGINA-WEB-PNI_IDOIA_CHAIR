@@ -45,7 +45,13 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 
 </head>
-
+<!-- Botón flotante de WhatsApp -->
+<a href="https://wa.me/34604811712" class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="white">
+    <path d="M16 0C7.164 0 0 7.164 0 16c0 2.796.729 5.522 2.118 7.926L0 32l8.307-2.081A15.935 15.935 0 0016 32c8.836 0 16-7.164 16-16S24.836 0 16 0zm0 29.333c-2.413 0-4.781-.652-6.845-1.884l-.491-.291-5.097 1.279 1.357-4.964-.32-.511A13.288 13.288 0 012.667 16C2.667 8.654 8.654 2.667 16 2.667S29.333 8.654 29.333 16 23.346 29.333 16 29.333z"/>
+    <path d="M23.264 19.191c-.395-.198-2.341-1.156-2.704-1.289-.363-.132-.627-.198-.892.198-.264.395-1.023 1.289-1.253 1.553-.231.264-.462.297-.858.099-.395-.198-1.673-.616-3.186-1.967-1.178-1.051-1.973-2.348-2.204-2.744-.231-.395-.025-.609.174-.806.178-.177.395-.462.594-.693.198-.231.264-.396.396-.66.132-.264.066-.495-.033-.693-.099-.198-.892-2.148-1.222-2.942-.322-.773-.648-.668-.892-.681-.231-.011-.495-.013-.759-.013-.264 0-.693.099-1.056.495-.363.396-1.387 1.355-1.387 3.305s1.42 3.833 1.618 4.097c.198.264 2.795 4.266 6.772 5.982.946.409 1.685.653 2.26.835.95.302 1.814.259 2.497.157.761-.114 2.341-.958 2.672-1.882.331-.925.331-1.718.231-1.882-.099-.165-.363-.264-.758-.462z"/>
+  </svg>
+</a>
 
 <body>
   <header id="inicio" aria-label="Hero - Presentación principal">
@@ -86,13 +92,7 @@
   </header>
 
   <main>
-    <!-- Botón flotante de WhatsApp -->
-<a href="https://wa.me/34604811712" class="whatsapp-float" target="_blank" aria-label="Contactar por WhatsApp">
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="white">
-    <path d="M16 0C7.164 0 0 7.164 0 16c0 2.796.729 5.522 2.118 7.926L0 32l8.307-2.081A15.935 15.935 0 0016 32c8.836 0 16-7.164 16-16S24.836 0 16 0zm0 29.333c-2.413 0-4.781-.652-6.845-1.884l-.491-.291-5.097 1.279 1.357-4.964-.32-.511A13.288 13.288 0 012.667 16C2.667 8.654 8.654 2.667 16 2.667S29.333 8.654 29.333 16 23.346 29.333 16 29.333z"/>
-    <path d="M23.264 19.191c-.395-.198-2.341-1.156-2.704-1.289-.363-.132-.627-.198-.892.198-.264.395-1.023 1.289-1.253 1.553-.231.264-.462.297-.858.099-.395-.198-1.673-.616-3.186-1.967-1.178-1.051-1.973-2.348-2.204-2.744-.231-.395-.025-.609.174-.806.178-.177.395-.462.594-.693.198-.231.264-.396.396-.66.132-.264.066-.495-.033-.693-.099-.198-.892-2.148-1.222-2.942-.322-.773-.648-.668-.892-.681-.231-.011-.495-.013-.759-.013-.264 0-.693.099-1.056.495-.363.396-1.387 1.355-1.387 3.305s1.42 3.833 1.618 4.097c.198.264 2.795 4.266 6.772 5.982.946.409 1.685.653 2.26.835.95.302 1.814.259 2.497.157.761-.114 2.341-.958 2.672-1.882.331-.925.331-1.718.231-1.882-.099-.165-.363-.264-.758-.462z"/>
-  </svg>
-</a>
+    
    <section id="en-que-puedo-ayudarte" class="section help">
       <h2>En qué puedo ayudarte</h2>
       <p class="lead">Abordaje global para mejorar la función de los sistemas principales del cuerpo.</p>
@@ -130,7 +130,7 @@
       </div>
     </section>
 
-        <section id="servicios" class="section services">
+        <section id="en-que-puedo-ayudarte" class="section help">
       <h2>Servicios</h2>
       <div class="cards">
         <div class="card">
@@ -328,7 +328,7 @@ document.querySelectorAll('.faq-question').forEach(question => {
 </script>
 <script>
 // ========================================
-// MENÚ HAMBURGUESA - VERSIÓN FINAL
+// MENÚ HAMBURGUESA
 // ========================================
 const hamburger = document.getElementById('hamburger');
 const menu = document.getElementById('menu');
@@ -338,62 +338,51 @@ const overlay = document.createElement('div');
 overlay.className = 'menu-overlay';
 document.body.appendChild(overlay);
 
-// Función para cerrar el menú
-function closeMenu() {
+// Toggle del menú
+hamburger.addEventListener('click', function() {
+    const isOpen = menu.classList.contains('active');
+    
+    hamburger.classList.toggle('active');
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
+    
+    // Accesibilidad
+    hamburger.setAttribute('aria-expanded', !isOpen);
+    hamburger.setAttribute('aria-label', isOpen ? 'Abrir menú' : 'Cerrar menú');
+    
+    // Prevenir scroll del body cuando el menú está abierto
+    document.body.style.overflow = isOpen ? '' : 'hidden';
+});
+
+// Cerrar menú al hacer click en el overlay
+overlay.addEventListener('click', function() {
     hamburger.classList.remove('active');
     menu.classList.remove('active');
     overlay.classList.remove('active');
     hamburger.setAttribute('aria-expanded', 'false');
+    hamburger.setAttribute('aria-label', 'Abrir menú');
     document.body.style.overflow = '';
-}
-
-// Toggle del menú
-hamburger.addEventListener('click', function(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    const isOpen = hamburger.classList.contains('active');
-    
-    if (isOpen) {
-        closeMenu();
-    } else {
-        hamburger.classList.add('active');
-        menu.classList.add('active');
-        overlay.classList.add('active');
-        hamburger.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
-    }
 });
 
-// Cerrar menú clickeando fuera
-document.addEventListener('click', function(e) {
-    const menuOpen = menu.classList.contains('active');
-    
-    if (!menuOpen) return;
-    
-    // Si el click es en un link del menú o en el menú mismo, dejar que pase
-    if (e.target.closest('#menu') || e.target.closest('.hamburger')) {
-        return;
-    }
-    
-    // Si el click es en el overlay (fondo), cerrar
-    closeMenu();
-}, true);
-
-// Cerrar menú con enlaces
-const menuLinks = menu.querySelectorAll('a');
-
-menuLinks.forEach((link) => {
+// Cerrar menú al hacer click en un enlace
+menu.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', function() {
-        // Cerrar el menú después de un pequeño delay para permitir la navegación
-        setTimeout(closeMenu, 100);
+        hamburger.classList.remove('active');
+        menu.classList.remove('active');
+        overlay.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
     });
 });
 
-// Cerrar con Escape
+// Cerrar menú con tecla Escape
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && menu.classList.contains('active')) {
-        closeMenu();
+        hamburger.classList.remove('active');
+        menu.classList.remove('active');
+        overlay.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
     }
 });
 </script>
