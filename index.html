@@ -27,7 +27,6 @@
   "openingHours": "Mo-Fr 09:00-20:00"
 }
 </script>
-
   <!-- Open Graph para redes sociales -->
   <meta property="og:title" content="Idoia Chair - PNI y Salud Integrativa en Zaragoza">
   <meta property="og:description" content="Consulta de Psiconeuroinmunología. Abordaje integral para problemas digestivos, hormonales e inmunológicos.">
@@ -130,7 +129,7 @@
       </div>
     </section>
 
-        <section id="en-que-puedo-ayudarte" class="section help">
+        <section id="servicios" class="section help">
       <h2>Servicios</h2>
       <div class="cards">
         <div class="card">
@@ -328,64 +327,213 @@ document.querySelectorAll('.faq-question').forEach(question => {
 </script>
 <script>
 // ========================================
-// MENÚ HAMBURGUESA
+// MENÚ HAMBURGUESA - ARREGLADO PARA MÓVIL
+// Cambios principales:
+//  - Uso de Pointer Events cuando están disponibles (pointerdown) para unificar
+//    mouse/touch/pen y evitar dobles disparos touch->click.
+//  - Fallback para navegadores sin Pointer Events: touchstart (passive:false) + click.
+//  - Debounce temporal (400ms) para evitar toggles rápidos duplicados.
+//  - stopPropagation en handlers y mejoras CSS (touch-action y pointer-events) para
+//    evitar que otros handlers/elementos cierren el menú accidentalmente.
+// Para depuración en móvil: habilita DEBUG_MENU = true y mira la consola remoto (DevTools/Safari Web Inspector).
 // ========================================
 const hamburger = document.getElementById('hamburger');
 const menu = document.getElementById('menu');
+// Detect support for Pointer Events to unify input handling
+const HAS_POINTER = window.PointerEvent !== undefined;
+// Modo depuración para inspeccionar orden de eventos en móviles
+// Cambia a `false` para desactivar en producción
+const DEBUG_MENU = true;
+
+// Si DEBUG_MENU=true creamos un panel visible en la página que muestra mensajes
+let _dbgPanel = null;
+function debugLog(...args) {
+  try { console.debug(...args); } catch (e) { /* ignore */ }
+  if (!DEBUG_MENU) return;
+  // crear panel si hace falta
+  if (!_dbgPanel) {
+    _dbgPanel = document.createElement('div');
+    _dbgPanel.className = 'mobile-debug-panel';
+    _dbgPanel.innerHTML = `
+      <div class="dbg-head">
+        <div>DEBUG</div>
+        <div class="dbg-controls">
+          <button id="dbg-clear">Limpiar</button>
+          <button id="dbg-hide">Ocultar</button>
+        </div>
+      </div>
+      <div class="dbg-body" id="dbg-body"></div>
+    `;
+    document.body.appendChild(_dbgPanel);
+    document.getElementById('dbg-clear').addEventListener('click', () => {
+      document.getElementById('dbg-body').innerHTML = '';
+    });
+    document.getElementById('dbg-hide').addEventListener('click', () => {
+      _dbgPanel.classList.toggle('hidden');
+    });
+  }
+
+  const out = document.getElementById('dbg-body');
+  if (!out) return;
+  const time = new Date().toLocaleTimeString();
+  const line = document.createElement('div');
+  line.className = 'mobile-debug-line';
+  line.innerHTML = `<span class="mobile-debug-time">${time}</span> ${Array.from(args).map(a => {
+    try { return typeof a === 'string' ? a : JSON.stringify(a); } catch (e) { return String(a); }
+  }).join(' ')} `;
+  out.appendChild(line);
+  // Mantener solo últimas 200 líneas para no consumir memoria
+  while (out.children.length > 200) out.removeChild(out.firstChild);
+  out.scrollTop = out.scrollHeight;
+}
+// Protegemos contra toggles dobles: ignorar toggles muy cercanos en el tiempo
+let _lastToggleAt = 0;
+// evitar que un pointerdown que ocurre inmediatamente después de abrir el menú
+// (por la reordenación de capas) cierre el menú. Guardamos un umbral temporal
+// durante el cual los pointerdown sobre el overlay se ignoran.
+let _overlaySuppressUntil = 0;
+// Si usamos pointercapture guardamos id para liberarlo cuando corresponda
+let _capturedPointerId = null;
 
 // Crear overlay
 const overlay = document.createElement('div');
 overlay.className = 'menu-overlay';
 document.body.appendChild(overlay);
 
-// Toggle del menú
-hamburger.addEventListener('click', function() {
-    const isOpen = menu.classList.contains('active');
-    
-    hamburger.classList.toggle('active');
-    menu.classList.toggle('active');
-    overlay.classList.toggle('active');
-    
-    // Accesibilidad
-    hamburger.setAttribute('aria-expanded', !isOpen);
-    hamburger.setAttribute('aria-label', isOpen ? 'Abrir menú' : 'Cerrar menú');
-    
-    // Prevenir scroll del body cuando el menú está abierto
-    document.body.style.overflow = isOpen ? '' : 'hidden';
-});
-
-// Cerrar menú al hacer click en el overlay
-overlay.addEventListener('click', function() {
-    hamburger.classList.remove('active');
+// Función para cerrar el menú
+function closeMenu(event) {
+  // Evitar que eventos suban al documento y disparen otros handlers
+  try { event && event.stopPropagation(); } catch (e) { /* ignore */ }
+  if (DEBUG_MENU) debugLog('closeMenu', event && event.type, 'target:', event && event.target && event.target.tagName);
+  hamburger.classList.remove('active');
     menu.classList.remove('active');
     overlay.classList.remove('active');
+    // quitar la clase de menú abierto en body (si estaba)
+    try { document.body.classList.remove('menu-open'); } catch (e) { /* ignore */ }
     hamburger.setAttribute('aria-expanded', 'false');
     hamburger.setAttribute('aria-label', 'Abrir menú');
     document.body.style.overflow = '';
-});
+}
 
-// Cerrar menú al hacer click en un enlace
-menu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', function() {
-        hamburger.classList.remove('active');
-        menu.classList.remove('active');
-        overlay.classList.remove('active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-       }, 300);
+// Función para abrir/cerrar el menú
+function toggleMenu(event) {
+  // Si el evento es pointerdown o touchstart, evitar que el click sintético
+  // que algunos navegadores generan dispare otra vez (prevenir duplicados)
+  if (event && (event.type === 'pointerdown' || event.type === 'touchstart')) {
+    try { event.preventDefault(); } catch (e) { /* ignore */ }
+  }
+
+  try { event && event.stopPropagation(); } catch (e) { /* ignore */ }
+  // Ignorar toggles duplicados en ventana corta (evita touch+click doble)
+  const now = Date.now();
+  if (now - _lastToggleAt < 400) {
+    if (DEBUG_MENU) debugLog('toggleMenu ignored duplicate', event && event.type);
+    return;
+  }
+  _lastToggleAt = now;
+
+  const isOpen = menu.classList.contains('active');
+  if (DEBUG_MENU) debugLog('toggleMenu', event && event.type, 'target:', event && event.target && event.target.tagName, 'isOpen=', isOpen);
+    hamburger.classList.toggle('active');
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
+    // Si estamos abriendo el menú, suprimimos eventos sobre el overlay
+    // durante una ventana corta para evitar cierres accidentales (ms)
+    if (!isOpen) {
+      _overlaySuppressUntil = Date.now() + 1000; // 1s de tolerancia para evitar condiciones de carrera
+      if (DEBUG_MENU) debugLog('suppressing overlay until', new Date(_overlaySuppressUntil).toLocaleTimeString());
+    }
+
+    // Si estamos en pointerdown y soporta pointer events, capturamos el puntero
+    if (event && event.type === 'pointerdown' && typeof event.pointerId === 'number' && typeof hamburger.setPointerCapture === 'function') {
+      try {
+        hamburger.setPointerCapture(event.pointerId);
+        _capturedPointerId = event.pointerId;
+        if (DEBUG_MENU) debugLog('pointer captured id=', _capturedPointerId);
+        // liberación automática del capture en pointerup
+        const release = function(ev) {
+          try {
+            if (_capturedPointerId !== null && typeof hamburger.releasePointerCapture === 'function') {
+              hamburger.releasePointerCapture(_capturedPointerId);
+              if (DEBUG_MENU) debugLog('pointer released id=', _capturedPointerId);
+            }
+          } catch (e) { /* ignore */ }
+          _capturedPointerId = null;
+          hamburger.removeEventListener('pointerup', release);
+          hamburger.removeEventListener('pointercancel', release);
+        };
+        hamburger.addEventListener('pointerup', release);
+        hamburger.addEventListener('pointercancel', release);
+      } catch (e) {
+        if (DEBUG_MENU) debugLog('pointer capture failed', e);
+      }
+    }
+    // Añadir clase en body para ocultar elementos flotantes o ajustar estilos cuando el menú esté abierto
+    hamburger.setAttribute('aria-expanded', !isOpen);
+    hamburger.setAttribute('aria-label', isOpen ? 'Abrir menú' : 'Cerrar menú');
+    document.body.style.overflow = isOpen ? '' : 'hidden';
+}
+
+// Eventos para el botón de hamburguesa
+if (HAS_POINTER) {
+  // pointerdown unifica mouse/touch/pen — fiable y evita dobles disparos
+  hamburger.addEventListener('pointerdown', toggleMenu);
+} else {
+  // Fallback: touchstart + click — touchstart no pasivo para prevenir el click sintético
+  hamburger.addEventListener('touchstart', toggleMenu, { passive: false });
+  hamburger.addEventListener('click', toggleMenu);
+}
+
+// Cerrar menú con el overlay (pointer si hay soporte)
+if (HAS_POINTER) {
+  overlay.addEventListener('pointerdown', function(e) {
+    // cerramos solo si el objetivo del pointer es el overlay en sí
+    if (e.target !== overlay) return;
+    // suprimir si ocurrió muy pronto después de abrir el menú
+    if (Date.now() < _overlaySuppressUntil) {
+      if (DEBUG_MENU) debugLog('overlay suppressed (too soon)', 'now=', Date.now(), 'until=', _overlaySuppressUntil);
+      return;
+    }
+    if (DEBUG_MENU) debugLog('overlay pointerdown target:', e.target.tagName);
+    closeMenu(e);
+  });
+  } else {
+    overlay.addEventListener('click', function(e) {
+      // cerrar solo si el objetivo fue el overlay (evitar cerrar cuando se pulsa dentro del menú)
+      if (e.target !== overlay) return;
+      if (Date.now() < _overlaySuppressUntil) {
+        if (DEBUG_MENU) debugLog('overlay click suppressed (too soon)');
+        return;
+      }
+      if (DEBUG_MENU) debugLog('overlay click target:', e.target.tagName);
+      closeMenu(e);
     });
+  }
+
+// Cerrar menú al hacer clic en un enlace (no prevenimos la navegación)
+menu.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', function(e) {
+    // Si es un enlace local (ancla), dejamos que la navegación por defecto ocurra
+    // y cerramos el menú un pelín después para no interferir con el navegador móvil.
+    const href = this.getAttribute('href') || '';
+    if (href.startsWith('#')) {
+      // pequeña pausa para dejar que el navegador procese la navegación
+      setTimeout(() => closeMenu(), 60);
+    } else {
+      // enlaces externos: cerramos inmediatamente
+      closeMenu(e);
+    }
+  });
 });
 
 // Cerrar menú con tecla Escape
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && menu.classList.contains('active')) {
-        hamburger.classList.remove('active');
-        menu.classList.remove('active');
-        overlay.classList.remove('active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
+        closeMenu();
     }
 });
+    // Clase en body para indicar menú abierto — útil para ocultar elementos flotantes
+    document.body.classList.toggle('menu-open', !isOpen);
 </script>
 
 </body>

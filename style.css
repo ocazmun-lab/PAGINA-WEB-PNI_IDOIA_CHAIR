@@ -49,6 +49,9 @@ nav{
     z-index: 1001;
 }
 
+  /* Mejor comportamiento táctil: evitar gestos del navegador y asegurar zona sensible */
+  .hamburger { touch-action: manipulation; -ms-touch-action: manipulation; }
+
 .hamburger-line {
     display: block;
     width: 28px;
@@ -57,6 +60,29 @@ nav{
     border-radius: 3px;
     transition: all 0.3s ease;
 }
+
+/* Panel de depuración in-app (visible cuando DEBUG_MENU=true) */
+.mobile-debug-panel {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(92vw, 420px);
+  max-height: 40vh;
+  background: rgba(20,20,20,0.85);
+  color: #e8e8e8;
+  font-family: monospace;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 0.5rem;
+  z-index: 2000;
+  overflow-y: auto;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+}
+.mobile-debug-panel .dbg-head{display:flex;justify-content:space-between;align-items:center;padding:0.25rem 0.5rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:700}
+.mobile-debug-panel .dbg-controls button{background:transparent;border:1px solid rgba(255,255,255,0.1);color:inherit;padding:0.2rem 0.5rem;border-radius:6px;margin-left:0.4rem}
+.mobile-debug-line{padding:0.25rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.03);line-height:1.2}
+.mobile-debug-time{opacity:0.7;margin-right:0.5rem;color:#bdbdbd;font-size:11px}
+.mobile-debug-panel.hidden{display:none}
 
 /* Animación cuando está abierto */
 .hamburger.active .hamburger-line:nth-child(1) {
@@ -93,12 +119,15 @@ nav{
     background: rgba(0, 0, 0, 0.5);
     z-index: 998;
     opacity: 0;
+    /* Por defecto no aceptar punteros cuando está oculto */
+    pointer-events: none;
     transition: opacity 0.3s ease;
 }
 
 .menu-overlay.active {
     display: block;
     opacity: 1;
+  pointer-events: auto;
 }
 
 /* ========================================
@@ -124,8 +153,10 @@ nav{
         gap: 0;
         box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
         transition: right 0.3s ease;
-        z-index: 999;
+        z-index: 1500; /* elevar para que quede por encima de botones flotantes */
         overflow-y: auto;
+        /* asegurar que el menú acepta eventos táctiles cuando visible */
+        pointer-events: auto;
     }
     
     /* Menú visible cuando está activo */
@@ -458,6 +489,13 @@ footer{background:var(--primario);color:#fff;padding:1rem 0;margin-top:2rem}
   .whatsapp-float{ width:50px; height:50px; bottom:20px; right:20px;}
   .whatsapp-float svg{width:28px;height:28px;}
   }
+
+/* Ocultar el botón flotante cuando el menú esté abierto para evitar toques accidentales */
+.menu-open .whatsapp-float{
+  opacity: 0; 
+  pointer-events: none;
+  transform: scale(0.85);
+}
   /* ========================================
    PÁGINAS LEGALES
    ======================================== */
